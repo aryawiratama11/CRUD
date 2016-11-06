@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chat</title>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <style type="text/css">
+    html,
+    body,
+    .container {
+        height: 100%;
+    }
+    
+    #nameWindow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        height: 290px;
+        transform: translate(-50%, -50%);
+        /*background-color:blue;*/
+    }
+    
+    .btn:focus,.btn:active 
+    {
+   		outline: none !important;
+	}
+
+    h1,
+    h5 {
+        text-align: center;
+    }
+    
+    h4 {
+        text-align: center;
+        margin-bottom: 10%;
+    }
+    
+    textarea {
+        resize: none;
+    }
+    
+    #chatWindow {
+        display: none;
+    }
+    </style>
+</head>
+
+<body>
+    <div id="nameWindow" class="col-xs-8 col-sm-6 col-md-4">
+        <h1>Chat App</h1>
+        <h4>Welcome</h3>
+    	<div id="nameFormGroup" class="form-group">
+        	<label for="txtName">Please enter chat name</label>
+        	<input type="text" class="form-control" id="txtName" placeholder="name">
+    	</div>
+    	<button id="btnConfirmName" type="button" class="btn btn-success btn-block">Confirm</button> 
+  	</div>
+
+  	<div id="chatWindow" class="container">
+  		<h1>Chat</h1>
+    	<div class="col-xs-offset-2 col-xs-8" style="height: 50%;">
+      		<textarea style="height: 100%;" class="form-control" id="chatText" readonly></textarea>
+    	</div>
+    	<div class="col-xs-12">
+    		<h5 id="nameHeader">Name:<small> xxxx</small></h5>
+    	</div>
+    	<div class="col-xs-offset-3 col-xs-6">
+      		<div class="form-group">
+        		<textarea class="form-control" rows=3 id="txtTheMessage" placeholder="Message"></textarea>
+      		</div>
+      		<button id="btnSend" type="button" class="btn btn-success btn-block">Send</button>              
+    	</div>
+  	</div>
+
+  	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" ></script>
+
+  	<script type="text/javascript">
+    	// Setting up notification listener
+  		document.addEventListener('DOMContentLoaded', function () 
+    	{
+      		if (Notification.permission !== "granted")
+      		{
+       			Notification.requestPermission();
+      		}
+    	});
+
+    	var audio = new Audio('birdsound.mp3');
+
+    	// Initializing number of messages in chat
+    	var nrOfMessages = 0;
+    	// Link to retrieve all messages from server
+    	var linkToGetMessages = 'api.php';
+    	// Initializing chat name
+    	var chatName = '';
+
+    	// Request to get all current messages and appending them
+    	$.getJSON(linkToGetMessages, function(jData)
+    	{
+      		nrOfMessages = jData.length;
+      		for (var i = 0; i < jData.length; i++) 
+        	{
+      			var message = jData[i].sender+': '+ jData[i].text +'\n';
+      			$('#chatText').append(message);
+      		}
+        });
+
+    	// Interval triggered every second to request any new messages
+    	setInterval(function()
+    	{
+      		$.getJSON(linkToGetMessages, function(jData)
+      		{
+      			if(jData.length > nrOfMessages)
+      			{
+          			for (var i = nrOfMessages; i < jData.length; i++) 
+          			{
+            			var recievedSender = jData[i].sender;
+            			var recievedText = jData[i].text;           
+            			nrOfMessages = jData.length;
+
+            			var message = recievedSender+': '+ recievedText +'\n';
+            			$('#chatText').append(message);
+						scrollToBottom($('#chatText'));
+          			}
+          			notifyMe(jData[nrOfMessages-1].sender, jData[nrOfMessages-1].text);
+        			audio.play();
+      			}
+      		});
+  		}, 1000);
+
+    	// Function to save chat name and show chat window
+    	$('#btnConfirmName').click(function()
+    	{
+      		chatName = $('#txtName').val();
+      		if(chatName.trim() == '')
+      		{
+        		$('#nameFormGroup').addClass('has-error');
+      		}
+      		else
+      		{
+        		$('#nameHeader').html('Name:<small> ' + chatName + '</small>');
+        		$('#nameWindow').css({"display":"none"});
+        		$('#chatWindow').css({"display":"block"});
+        		scrollToBottom($('#chatText'));
+      		}
+      		//console.log(chatName);
+    	});
+
+    	// Function to send message to server when 'Send' button is clicked
+    	$('#btnSend').click(function()
+    	{
+    		var theText = $('#txtTheMessage').val();
+    		var theSender = chatName;
+    		var linkToSendMessage = 'api.php?sender='+theSender+'&text='+theText;
+      		$.getJSON(linkToSendMessage, function(jData)
+      		{ 	
+          		if(jData.length > nrOfMessages)
+          		{
+            		for (var i = nrOfMessages; i < jData.length; i++) 
+            		{
+              			var recievedSender = jData[i].sender;
+              			var recievedText = jData[i].text;           
+              			nrOfMessages = jData.length;
+              
+              			var message = recievedSender+': '+ recievedText +'\n';
+              			$('#chatText').append(message);
+              			scrollToBottom($('#chatText'));					    
+            		}
+          		}
+    		});
+  		});
+
+    	// Function to trigger notification
+  		function notifyMe(notificationTitle, notificationBody) 
+    	{
+      		if (!Notification) 
+      		{
+        		alert('Desktop notifications not available in your browser. Try Chromium.'); 
+        		return;
+      		}
+
+      		if (Notification.permission !== "granted")
+      		{
+        		Notification.requestPermission();
+      		}
+      		else 
+      		{
+        		var notification = new Notification(notificationTitle, {
+          		icon: 'http://iconshow.me/media/images/Mixed/small-n-flat-icon/png/512/bubble.png',
+          		body: notificationBody});
+
+        		notification.onclick = function () {
+          			window.open("http://localhost/webdev/2016-04-08/v2/client.html");      
+        		};
+      		}
+  		}
+
+  		function scrollToBottom(chatTextArea)
+  		{			    
+			chatTextArea.scrollTop(chatTextArea[0].scrollHeight - chatTextArea.height());
+  		}     
+  </script>
+</body>
+</html>
