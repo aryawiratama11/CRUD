@@ -11,4 +11,9 @@ Build a system that fulfills the following requirements: <br>
 8. The all backend will be code it in php <br><br>
 
 Extra functionality: SMS API - remind user's password
-Desktop notification - confirmation that the SMS is sent 
+Desktop notification - confirmation that the SMS is sent. <br> <br>
+
+How to test it?
+1. Import database (for the better result insert some nationalities). <br>
+2. Open project and go ahead 
+3. To test chat open chat in 2 windows
